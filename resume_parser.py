@@ -298,8 +298,27 @@ class ResumeParser:
         phone = resume_data.get('phone', 'phone')
         skills = resume_data.get('skills', [])
         
-        # Create the summary line safely (no multi-line f-string expression)
+        # Safe handling of skills summary (no multi-line f-string expressions)
         skills_text = ', '.join(skills[:5]) if skills else 'various technologies'
+        skills_list = ', '.join(skills) if skills else '• Python\n• Java\n• SQL\n• JavaScript'
+        
+        # Experience lines
+        if resume_data.get('experience'):
+            exp_lines = '\n'.join(['• ' + exp for exp in resume_data['experience'][:3]])
+        else:
+            exp_lines = '• Senior Developer at Tech Company (2020-Present)\n• Developer at Startup (2018-2020)'
+        
+        # Education lines
+        if resume_data.get('education'):
+            edu_lines = '\n'.join(['• ' + edu for edu in resume_data['education'][:2]])
+        else:
+            edu_lines = '• Bachelor of Technology in Computer Science\n• High School Diploma'
+        
+        # Projects lines
+        if resume_data.get('projects'):
+            proj_lines = '\n'.join(['• ' + proj for proj in resume_data['projects'][:3]])
+        else:
+            proj_lines = '• Resume Analyzer - AI-powered tool\n• E-commerce Website - Full stack application'
         
         improved = f"""{name}
 {email} | {phone}
@@ -311,19 +330,19 @@ Proven track record of delivering results and driving innovation.
 
 TECHNICAL SKILLS
 ----------------------------------------------------------------
-{', '.join(skills) if skills else '• Python\n• Java\n• SQL\n• JavaScript'}
+{skills_list}
 
 PROFESSIONAL EXPERIENCE
 ----------------------------------------------------------------
-{chr(10).join(['• ' + exp for exp in resume_data.get('experience', [])[:3]]) if resume_data.get('experience') else '• Senior Developer at Tech Company (2020-Present)\n• Developer at Startup (2018-2020)'}
+{exp_lines}
 
 EDUCATION
 ----------------------------------------------------------------
-{chr(10).join(['• ' + edu for edu in resume_data.get('education', [])[:2]]) if resume_data.get('education') else '• Bachelor of Technology in Computer Science\n• High School Diploma'}
+{edu_lines}
 
 PROJECTS
 ----------------------------------------------------------------
-{chr(10).join(['• ' + proj for proj in resume_data.get('projects', [])[:3]]) if resume_data.get('projects') else '• Resume Analyzer - AI-powered tool\n• E-commerce Website - Full stack application'}
+{proj_lines}
 
 ACHIEVEMENTS
 ----------------------------------------------------------------
