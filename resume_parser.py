@@ -298,12 +298,15 @@ class ResumeParser:
         phone = resume_data.get('phone', 'phone')
         skills = resume_data.get('skills', [])
         
+        # Create the summary line safely (no multi-line f-string expression)
+        skills_text = ', '.join(skills[:5]) if skills else 'various technologies'
+        
         improved = f"""{name}
 {email} | {phone}
 
 PROFESSIONAL SUMMARY
 ----------------------------------------------------------------
-Experienced professional with expertise in {', '.join(skills[:5]) if skills else 'various technologies'}. 
+Experienced professional with expertise in {skills_text}. 
 Proven track record of delivering results and driving innovation.
 
 TECHNICAL SKILLS
