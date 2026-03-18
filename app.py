@@ -15,30 +15,13 @@ from pathlib import Path
 import re
 import io
 
-# Import all feature modules (with error handling)
+# Import all feature modules (voice features have been removed)
 from database import DatabaseManager
 from resume_parser import ResumeParser
 from ats_checker import ATSChecker
 from job_matcher import JobMatcher
 from interview_generator import InterviewGenerator
 from coding_practice import CodingPractice
-
-# Try to import voice module, but continue if it fails (silently)
-VOICE_AVAILABLE = False
-try:
-    from voice_interview import VoiceInterviewer
-    VOICE_AVAILABLE = True
-except ImportError:
-    # Dummy class as fallback (no console output)
-    class VoiceInterviewer:
-        def __init__(self):
-            pass
-        def record_and_transcribe(self, *args, **kwargs):
-            return "Voice features not installed", 0
-        def analyze_speech(self, *args, **kwargs):
-            return {'confidence': 0, 'clarity': 0, 'pace': 'N/A', 'filler_words': [], 'word_count': 0}
-        def speak(self, text):
-            print(f"AI would say: {text}")
 
 # Page configuration
 st.set_page_config(
@@ -55,7 +38,6 @@ ats_checker = ATSChecker()
 job_matcher = JobMatcher()
 interview_gen = InterviewGenerator()
 coding_practice = CodingPractice()
-voice_interviewer = VoiceInterviewer() if VOICE_AVAILABLE else VoiceInterviewer()
 
 # Session state initialization
 if 'authenticated' not in st.session_state:
@@ -405,11 +387,10 @@ def show_home():
         ("📄 Smart Resume Parsing", "Extract name, email, skills, education, experience automatically"),
         ("🎯 ATS Compatibility", "Check if your resume passes ATS systems with detailed analysis"),
         ("💼 Job Matching", "Find perfect jobs and identify skill gaps"),
-        ("🤖 AI Mock Interview", "HR and Technical interviews with voice support"),
+        ("🤖 AI Mock Interview", "HR and Technical interviews with feedback"),
         ("📚 Coding Practice", "Personalized coding questions based on job requirements"),
         ("📊 Multi-Resume Comparison", "Compare multiple resumes side by side"),
         ("🏆 Leaderboard", "Compete with other users and track progress"),
-        ("🎤 Voice Interview", "Practice interviews with voice recognition"),
         ("📈 Performance Dashboard", "Track your improvement over time")
     ]
     
@@ -760,14 +741,14 @@ def show_job_matcher():
                             st.info(f"Application link: {job.get('apply_url', '#')}")
                     st.markdown("---")
 
-# Mock Interview Page
+# Mock Interview Page (Voice removed)
 def show_mock_interview():
     st.markdown("<h1>💼 AI Mock Interview</h1>", unsafe_allow_html=True)
     
-    tab1, tab2, tab3, tab4 = st.tabs([
+    # Only HR and Technical tabs remain
+    tab1, tab2, tab4 = st.tabs([
         "👩‍💼 HR Interview", 
         "💻 Technical Interview", 
-        "🎤 Voice Interview",
         "📊 Interview History"
     ])
     
@@ -844,87 +825,6 @@ def show_mock_interview():
         else:
             st.warning("⚠️ Please upload your resume first")
     
-    with tab3:
-        st.markdown("### 🎤 Voice Interview")
-        
-        if VOICE_AVAILABLE:
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                st.markdown("#### 🎯 Interview Settings")
-                interview_type = st.radio("Interview Type", ["HR", "Technical", "Mixed"])
-                duration = st.slider("Duration (minutes)", 5, 30, 10)
-                
-                if st.button("🎤 Start Voice Interview", use_container_width=True):
-                    st.session_state.voice_interview_active = True
-            
-            with col2:
-                st.markdown("#### 📊 Voice Analysis")
-                st.markdown("""
-                The AI will analyze:
-                • Confidence Level
-                • Speech Clarity
-                • Pace of Speaking
-                • Filler Words
-                """)
-            
-            if st.session_state.get('voice_interview_active', False):
-                st.markdown("---")
-                st.markdown("### 🎙️ Live Interview Session")
-                
-                # Get questions based on resume
-                if st.session_state.resume_data:
-                    questions = interview_gen.generate_interview_questions(
-                        st.session_state.resume_data, interview_type
-                    )
-                else:
-                    questions = interview_gen.generate_general_questions(interview_type)
-                
-                # Interview interface
-                for i, q in enumerate(questions[:5]):  # Limit to 5 questions
-                    st.markdown(f"**Question {i+1}:** {q if isinstance(q, str) else q.get('question', str(q))}")
-                    
-                    # Voice recording button
-                    if st.button(f"🎤 Record Answer {i+1}", key=f"record_{i}"):
-                        with st.spinner("Recording... Speak now (5 seconds)"):
-                            # Record and transcribe
-                            text, confidence = voice_interviewer.record_and_transcribe(duration=5)
-                            
-                            if text:
-                                st.success(f"You said: {text}")
-                                
-                                # Analyze response
-                                analysis = voice_interviewer.analyze_speech(text, confidence)
-                                
-                                col1, col2, col3 = st.columns(3)
-                                with col1:
-                                    st.metric("Confidence", f"{analysis['confidence']}%")
-                                with col2:
-                                    st.metric("Clarity", f"{analysis['clarity']}%")
-                                with col3:
-                                    st.metric("Pace", analysis['pace'])
-                                
-                                if analysis.get('filler_words'):
-                                    st.warning(f"Filler words detected: {', '.join(analysis['filler_words'])}")
-                                
-                                # Save to history
-                                st.session_state.interview_history.append({
-                                    'type': 'Voice',
-                                    'question': q,
-                                    'answer': text,
-                                    'analysis': analysis,
-                                    'date': datetime.now()
-                                })
-                
-                if st.button("⏹️ End Interview"):
-                    st.session_state.voice_interview_active = False
-                    st.success("Interview completed! Check your history for feedback.")
-        else:
-            st.warning("🎤 Voice interview feature requires additional setup.")
-            st.info("Run this command in your terminal to enable voice features:")
-            st.code("pip install sounddevice speechrecognition pyttsx3")
-            st.info("Or continue using text-based interviews in the other tabs.")
-    
     with tab4:
         st.markdown("### 📊 Interview History")
         
@@ -937,15 +837,6 @@ def show_mock_interview():
                     if 'feedback' in interview:
                         st.markdown(f"**Score:** {interview['feedback'].get('score', 'N/A')}%")
                         st.markdown(f"**Feedback:** {interview['feedback'].get('tip', 'N/A')}")
-                    
-                    if 'analysis' in interview:
-                        col1, col2, col3 = st.columns(3)
-                        with col1:
-                            st.metric("Confidence", f"{interview['analysis'].get('confidence', 0)}%")
-                        with col2:
-                            st.metric("Clarity", f"{interview['analysis'].get('clarity', 0)}%")
-                        with col3:
-                            st.metric("Pace", interview['analysis'].get('pace', 'N/A'))
         else:
             st.info("No interview history yet. Start a mock interview to see results!")
 
