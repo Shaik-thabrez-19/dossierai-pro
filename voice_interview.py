@@ -4,7 +4,7 @@ import threading
 import queue
 import random
 
-# Try to import optional dependencies; set flags accordingly
+# Attempt to import optional dependencies
 try:
     import speech_recognition as sr
     SPEECH_RECOGNITION_AVAILABLE = True
@@ -26,23 +26,36 @@ except ImportError:
     sd = None
     SOUNDDEVICE_AVAILABLE = False
 
+# Check for pyaudio separately (needed by speech_recognition.Microphone)
+PYAUDIO_AVAILABLE = False
+if SPEECH_RECOGNITION_AVAILABLE:
+    try:
+        import pyaudio
+        PYAUDIO_AVAILABLE = True
+    except ImportError:
+        PYAUDIO_AVAILABLE = False
+
 
 class VoiceInterviewer:
     def __init__(self):
-        # Initialize components only if dependencies are available
         self.recognizer = None
         self.microphone = None
         self.tts_engine = None
+        self.microphone_available = False
 
-        if SPEECH_RECOGNITION_AVAILABLE:
+        # Initialize speech recognition only if both sr and pyaudio are available
+        if SPEECH_RECOGNITION_AVAILABLE and PYAUDIO_AVAILABLE:
             try:
                 self.recognizer = sr.Recognizer()
                 self.microphone = sr.Microphone()
+                self.microphone_available = True
             except Exception as e:
-                print(f"⚠️ Could not initialize speech recognition: {e}")
+                print(f"⚠️ Could not initialize microphone: {e}")
                 self.recognizer = None
                 self.microphone = None
+                self.microphone_available = False
 
+        # Initialize text-to-speech if available
         if TTS_AVAILABLE:
             try:
                 self.tts_engine = pyttsx3.init()
@@ -55,7 +68,6 @@ class VoiceInterviewer:
         self.sample_rate = 16000
         self.audio_queue = queue.Queue()
         self.is_recording = False
-
         self.filler_words = ['um', 'uh', 'like', 'you know', 'actually', 'basically']
 
     def speak(self, text):
@@ -87,7 +99,7 @@ class VoiceInterviewer:
 
     def audio_to_text(self, audio_data):
         """Convert audio bytes to text using speech_recognition (if available)"""
-        if not SPEECH_RECOGNITION_AVAILABLE or not self.recognizer:
+        if not self.recognizer or not self.microphone_available:
             return "Speech recognition not available", 0
 
         try:
@@ -98,7 +110,7 @@ class VoiceInterviewer:
 
             audio = sr.AudioData(audio_bytes, self.sample_rate, 2)
             text = self.recognizer.recognize_google(audio)
-            return text, 85
+            return text, 85  # mock confidence
         except sr.UnknownValueError:
             return "Could not understand audio", 0
         except sr.RequestError:
@@ -108,7 +120,7 @@ class VoiceInterviewer:
 
     def record_and_transcribe(self, duration=5):
         """Record and transcribe (fallback if not available)"""
-        if not SOUNDDEVICE_AVAILABLE or not SPEECH_RECOGNITION_AVAILABLE:
+        if not SOUNDDEVICE_AVAILABLE or not self.microphone_available:
             return "Voice features not installed", 0
 
         audio_data = self.record_audio(duration)
