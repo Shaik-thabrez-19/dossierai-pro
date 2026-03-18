@@ -67,7 +67,6 @@ class VoiceInterviewer:
             except Exception as e:
                 print(f"TTS error: {e}")
         else:
-            # Fallback: just print to console
             print(f"AI would say: {text}")
 
     def record_audio(self, duration=5):
@@ -92,7 +91,6 @@ class VoiceInterviewer:
             return "Speech recognition not available", 0
 
         try:
-            # Convert numpy array to bytes if needed
             if hasattr(audio_data, 'tobytes'):
                 audio_bytes = audio_data.tobytes()
             else:
@@ -100,7 +98,7 @@ class VoiceInterviewer:
 
             audio = sr.AudioData(audio_bytes, self.sample_rate, 2)
             text = self.recognizer.recognize_google(audio)
-            return text, 85  # mock confidence
+            return text, 85
         except sr.UnknownValueError:
             return "Could not understand audio", 0
         except sr.RequestError:
@@ -143,7 +141,6 @@ class VoiceInterviewer:
             print(f"\nQuestion {i}: {q}")
             self.speak(q)
             time.sleep(2)
-            # Simulate answer
             responses.append({
                 'question': q,
                 'answer': "Simulated answer",
