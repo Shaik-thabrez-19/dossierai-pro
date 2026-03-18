@@ -23,16 +23,13 @@ from job_matcher import JobMatcher
 from interview_generator import InterviewGenerator
 from coding_practice import CodingPractice
 
-# Try to import voice module, but continue if it fails
+# Try to import voice module, but continue if it fails (silently)
+VOICE_AVAILABLE = False
 try:
     from voice_interview import VoiceInterviewer
     VOICE_AVAILABLE = True
-    print("✅ Voice features enabled")
-except ImportError as e:
-    VOICE_AVAILABLE = False
-    print(f"⚠️ Voice features disabled: {e}")
-    print("   To enable voice, run: pip install sounddevice")
-    # Create a dummy class as fallback
+except ImportError:
+    # Dummy class as fallback (no console output)
     class VoiceInterviewer:
         def __init__(self):
             pass
@@ -925,7 +922,7 @@ def show_mock_interview():
         else:
             st.warning("🎤 Voice interview feature requires additional setup.")
             st.info("Run this command in your terminal to enable voice features:")
-            st.code("pip install sounddevice")
+            st.code("pip install sounddevice speechrecognition pyttsx3")
             st.info("Or continue using text-based interviews in the other tabs.")
     
     with tab4:
@@ -961,33 +958,55 @@ def show_coding_practice():
     with tab1:
         st.markdown("### 📅 Daily Coding Challenge")
         
-        # Get daily challenge
+        # Get daily challenge with safe defaults
         challenge = coding_practice.get_daily_challenge()
+        
+        # Ensure challenge has all required keys
+        if not isinstance(challenge, dict):
+            challenge = {}
         
         col1, col2 = st.columns([2, 1])
         
         with col1:
-            st.markdown(f"## {challenge['title']}")
-            st.markdown(f"**Difficulty:** {challenge['difficulty']}")
-            st.markdown(f"**Topic:** {challenge['topic']}")
-            st.markdown(f"**Estimated Time:** {challenge['time']} minutes")
+            # Safely get values with defaults
+            title = challenge.get('title', 'Daily Coding Challenge')
+            difficulty = challenge.get('difficulty', 'Medium')
+            topic = challenge.get('topic', 'General Programming')
+            time_est = challenge.get('time', 30)
+            description = challenge.get('description', 'Solve this coding challenge to improve your skills.')
+            examples = challenge.get('examples', [])
+            starter_code = challenge.get('starter_code', '# Write your solution here\npass')
+            hint = challenge.get('hint', 'Think about the problem carefully.')
+            test_cases = challenge.get('test_cases', [])
+            challenge_id = challenge.get('id', 0)
+            
+            st.markdown(f"## {title}")
+            st.markdown(f"**Difficulty:** {difficulty}")
+            st.markdown(f"**Topic:** {topic}")
+            st.markdown(f"**Estimated Time:** {time_est} minutes")
             
             st.markdown("### Problem Description")
-            st.markdown(challenge['description'])
+            st.markdown(description)
             
-            st.markdown("### Examples")
-            for ex in challenge.get('examples', []):
-                st.code(f"Input: {ex.get('input', 'N/A')}\nOutput: {ex.get('output', 'N/A')}")
+            if examples:
+                st.markdown("### Examples")
+                for ex in examples:
+                    if isinstance(ex, dict):
+                        input_val = ex.get('input', 'N/A')
+                        output_val = ex.get('output', 'N/A')
+                        explanation = ex.get('explanation', '')
+                        st.code(f"Input: {input_val}\nOutput: {output_val}")
+                        if explanation:
+                            st.caption(f"Explanation: {explanation}")
             
             # Code editor
             st.markdown("### Your Solution")
-            code = st.text_area("Write your code here:", height=200, 
-                               value=challenge.get('starter_code', ''))
+            code = st.text_area("Write your code here:", height=200, value=starter_code)
             
             col1, col2, col3 = st.columns(3)
             with col1:
                 if st.button("▶️ Run Code", use_container_width=True):
-                    result = coding_practice.run_code(code, challenge.get('test_cases', []))
+                    result = coding_practice.run_code(code, test_cases)
                     if result.get('passed', False):
                         st.success(f"✅ All tests passed! ({result.get('runtime', 0)}ms)")
                     else:
@@ -995,11 +1014,11 @@ def show_coding_practice():
             
             with col2:
                 if st.button("💡 Hint", use_container_width=True):
-                    st.info(challenge.get('hint', 'Think about the optimal approach.'))
+                    st.info(hint)
             
             with col3:
                 if st.button("✅ Mark Complete", use_container_width=True):
-                    coding_practice.mark_complete(st.session_state.user_id, challenge.get('id', 0))
+                    coding_practice.mark_complete(st.session_state.user_id, challenge_id)
                     st.success("Great job! Challenge completed!")
         
         with col2:
@@ -1010,8 +1029,11 @@ def show_coding_practice():
             
             st.markdown("### 🎯 Recommended for You")
             recommendations = coding_practice.get_recommendations(st.session_state.resume_data)
-            for rec in recommendations:
-                st.markdown(f"- {rec}")
+            if recommendations:
+                for rec in recommendations:
+                    st.markdown(f"- {rec}")
+            else:
+                st.info("No recommendations yet. Analyze a resume first!")
     
     with tab2:
         st.markdown("### 🎯 Practice by Skill")
