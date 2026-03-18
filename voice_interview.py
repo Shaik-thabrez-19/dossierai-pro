@@ -4,7 +4,7 @@ import threading
 import queue
 import random
 
-# Try to import optional dependencies
+# Try to import optional dependencies; set flags accordingly
 try:
     import speech_recognition as sr
     SPEECH_RECOGNITION_AVAILABLE = True
@@ -19,7 +19,6 @@ except ImportError:
     pyttsx3 = None
     TTS_AVAILABLE = False
 
-# Optional: try to import sounddevice (if used)
 try:
     import sounddevice as sd
     SOUNDDEVICE_AVAILABLE = True
@@ -68,11 +67,11 @@ class VoiceInterviewer:
             except Exception as e:
                 print(f"TTS error: {e}")
         else:
-            # Fallback: just print
+            # Fallback: just print to console
             print(f"AI would say: {text}")
 
     def record_audio(self, duration=5):
-        """Record audio using sounddevice (if available) or return None"""
+        """Record audio using sounddevice (if available)"""
         if SOUNDDEVICE_AVAILABLE:
             try:
                 print(f"Recording for {duration} seconds...")
@@ -85,8 +84,7 @@ class VoiceInterviewer:
             except Exception as e:
                 print(f"Recording error: {e}")
                 return None
-        else:
-            return None
+        return None
 
     def audio_to_text(self, audio_data):
         """Convert audio bytes to text using speech_recognition (if available)"""
@@ -100,7 +98,6 @@ class VoiceInterviewer:
             else:
                 audio_bytes = audio_data
 
-            # Create AudioData object
             audio = sr.AudioData(audio_bytes, self.sample_rate, 2)
             text = self.recognizer.recognize_google(audio)
             return text, 85  # mock confidence
@@ -126,7 +123,6 @@ class VoiceInterviewer:
     def analyze_speech(self, text, confidence):
         """Analyze speech quality (always available)"""
         words = text.lower().split()
-
         filler_count = sum(1 for word in words if word in self.filler_words)
         pace = len(words) / 5 if len(words) > 0 else 0
         clarity = max(0, confidence - (filler_count * 5))
@@ -141,14 +137,13 @@ class VoiceInterviewer:
         }
 
     def conduct_interview(self, questions):
-        """Conduct a full interview (simplified)"""
+        """Simulate a full interview (for demo)"""
         responses = []
         for i, q in enumerate(questions, 1):
             print(f"\nQuestion {i}: {q}")
             self.speak(q)
             time.sleep(2)
-            # In a real implementation, you would record and transcribe here
-            # For demo, just simulate a response
+            # Simulate answer
             responses.append({
                 'question': q,
                 'answer': "Simulated answer",
@@ -159,5 +154,4 @@ class VoiceInterviewer:
 
     def provide_feedback(self, responses):
         """Provide interview feedback"""
-        # Simplified feedback
         return ["Interview completed. Install voice dependencies for detailed analysis."]
